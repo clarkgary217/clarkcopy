@@ -1,0 +1,240 @@
+<title>LeBron Deal Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column; summary strip, then Auctions (ending soonest) and Buy It Now ledgers; rows collapse to stacked cards on phones. */
+:root {
+  --bg: #f3f1ee;
+  --surface: #fbfaf8;
+  --fg: #1d1a1c;
+  --muted: #6c6468;
+  --line: #ddd7d3;
+  --wine: #7a2335;
+  --gold: #b0852c;
+  --under: #1f7a4d;
+  --under-bg: #e2f1e8;
+  --near: #8a6514;
+  --near-bg: #f6ecd5;
+  --over: #9b3328;
+  --over-bg: #f6e1dd;
+  --none-bg: #ebe7e4;
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #171415; --surface: #201c1e; --fg: #efe9ea; --muted: #a39a9e; --line: #3a3336;
+    --wine: #d9798a; --gold: #d7ae5a;
+    --under: #74d0a0; --under-bg: #173528; --near: #e3bf6a; --near-bg: #3a2f17;
+    --over: #ef9285; --over-bg: #3f211d; --none-bg: #2c2729;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #171415; --surface: #201c1e; --fg: #efe9ea; --muted: #a39a9e; --line: #3a3336;
+  --wine: #d9798a; --gold: #d7ae5a;
+  --under: #74d0a0; --under-bg: #173528; --near: #e3bf6a; --near-bg: #3a2f17;
+  --over: #ef9285; --over-bg: #3f211d; --none-bg: #2c2729;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 56px; display: grid; gap: 28px; }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; border-bottom: 3px solid var(--wine); padding-bottom: 14px; }
+h1 { font-family: var(--font-display); font-size: clamp(2rem, 5vw, 2.8rem); line-height: 1; margin: 0; letter-spacing: .01em; text-transform: uppercase; text-wrap: balance; }
+h1 span { color: var(--wine); }
+.sub { color: var(--muted); font-size: .85rem; margin: 6px 0 0; }
+.poll { font-family: var(--font-data); font-size: .78rem; color: var(--muted); text-align: right; }
+.poll b { color: var(--fg); font-weight: 500; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+.stat { background: var(--surface); padding: 14px 16px; display: grid; gap: 2px; }
+.stat .k { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.stat .v { font-family: var(--font-display); font-size: 1.9rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat .v.good { color: var(--under); }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.toggle { display: inline-flex; align-items: center; gap: 8px; font-size: .85rem; cursor: pointer; user-select: none; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.toggle input { accent-color: var(--wine); }
+.toggle:focus-within { outline: 2px solid var(--wine); outline-offset: 2px; }
+section { display: grid; gap: 10px; }
+section h2 { font-family: var(--font-display); font-size: 1.45rem; text-transform: uppercase; letter-spacing: .04em; margin: 0; display: flex; align-items: baseline; gap: 10px; }
+section h2 small { font-family: var(--font-body); font-size: .8rem; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--muted); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); background: var(--surface); }
+table { width: 100%; border-collapse: collapse; min-width: 880px; }
+th { font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th.num, td.num { text-align: right; }
+td { padding: 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+.mono { font-family: var(--font-data); font-variant-numeric: tabular-nums; font-size: .88rem; }
+.ends { white-space: nowrap; }
+.ends.soon { color: var(--wine); font-weight: 500; }
+.ends.ended { color: var(--muted); }
+.card-title { font-weight: 500; max-width: 38ch; }
+.card-title a { color: inherit; text-decoration: none; }
+.card-title a:hover, .card-title a:focus-visible { text-decoration: underline; text-decoration-color: var(--wine); }
+.ext { display: inline-block; margin-top: 4px; font-family: var(--font-data); font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; color: var(--wine); text-decoration: none; }
+.ext:hover, .ext:focus-visible { text-decoration: underline; }
+.cl { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+.bids { color: var(--muted); font-size: .78rem; display: block; }
+.pill { display: inline-block; min-width: 4.4em; text-align: center; padding: 3px 8px; border-radius: 999px; font-family: var(--font-data); font-size: .8rem; font-weight: 500; }
+.pill.under { background: var(--under-bg); color: var(--under); }
+.pill.near { background: var(--near-bg); color: var(--near); }
+.pill.over { background: var(--over-bg); color: var(--over); }
+.pill.none { background: var(--none-bg); color: var(--muted); }
+.pill-note { display: block; font-size: .68rem; color: var(--muted); margin-top: 3px; text-align: center; }
+.slab { display: inline-block; border: 1.5px solid var(--wine); color: var(--wine); font-family: var(--font-data); font-size: .76rem; font-weight: 500; padding: 2px 6px; border-radius: 3px; white-space: nowrap; }
+.seller { font-size: .85rem; }
+.seller small { display: block; color: var(--muted); font-family: var(--font-data); font-size: .72rem; }
+.note { font-size: .72rem; color: var(--muted); }
+.empty { padding: 28px 16px; color: var(--muted); text-align: center; background: var(--surface); border: 1px dashed var(--line); }
+footer { font-size: .78rem; color: var(--muted); display: grid; gap: 6px; max-width: 75ch; }
+footer strong { color: var(--fg); font-weight: 600; }
+
+@media (max-width: 720px) {
+  .table-wrap { border: 0; background: none; overflow: visible; }
+  table, tbody, tr, td { display: block; min-width: 0; width: auto; }
+  thead { display: none; }
+  tr { background: var(--surface); border: 1px solid var(--line); padding: 12px 14px; display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; }
+  tr + tr { margin-top: 10px; }
+  td { padding: 0; border: 0; }
+  td.c-card { grid-column: 1 / -1; order: -1; }
+  td.c-ends { order: -2; grid-column: 1 / -1; }
+  td.num { text-align: left; }
+  td[data-label]::before { content: attr(data-label); display: block; font-size: .64rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .card-title { max-width: none; }
+}
+@media (prefers-reduced-motion: no-preference) { tr { transition: background-color .15s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>LeBron <span>Deal Board</span></h1>
+      <p class="sub">PSA-graded LeBron James listings on eBay over $300, priced against Card Ladder.</p>
+    </div>
+    <div class="poll" id="poll">Waiting for data…</div>
+  </header>
+
+  <div class="stats" id="stats" aria-live="polite">
+    <div class="stat"><span class="k">Listings</span><span class="v" id="s-total">–</span></div>
+    <div class="stat"><span class="k">At or under value</span><span class="v good" id="s-under">–</span></div>
+    <div class="stat"><span class="k">Auctions ending today</span><span class="v" id="s-today">–</span></div>
+    <div class="stat"><span class="k">No Card Ladder match</span><span class="v" id="s-none">–</span></div>
+  </div>
+
+  <div class="controls">
+    <label class="toggle" for="f-under"><input type="checkbox" id="f-under"> At or under value only</label>
+  </div>
+
+  <section aria-labelledby="h-auctions">
+    <h2 id="h-auctions">Auctions <small>ending soonest</small></h2>
+    <div id="auctions"><div class="empty">Auctions from the latest poll appear here.</div></div>
+  </section>
+
+  <section aria-labelledby="h-bin">
+    <h2 id="h-bin">Buy It Now</h2>
+    <div id="bin"><div class="empty">Buy It Now listings from the latest poll appear here.</div></div>
+  </section>
+
+  <section aria-labelledby="h-other" id="other-section" hidden>
+    <h2 id="h-other">Format unknown <small>listing details could not be loaded</small></h2>
+    <div id="other"></div>
+  </section>
+
+  <footer>
+    <span><strong>Est. value</strong> is Card Ladder's current value for the same card and grade. <strong>vs value</strong> is the current price as a share of that value: under 100% means the listing is priced below value.</span>
+    <span>Auction prices are the current bid and will usually climb before the end. End times are estimated from the time left when the listing was polled.</span>
+    <span id="meta-note"></span>
+  </footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const money = (n) => n == null ? "–" : "$" + n.toLocaleString("en-US", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
+let rows = [];
+let meta = null;
+
+function endsText(iso) {
+  if (!iso) return { text: "–", cls: "" };
+  const mins = Math.round((new Date(iso) - Date.now()) / 60000);
+  if (mins <= 0) return { text: "ended", cls: "ended" };
+  const d = Math.floor(mins / 1440), h = Math.floor((mins % 1440) / 60), m = mins % 60;
+  const text = d ? `${d}d ${h}h` : h ? `${h}h ${m}m` : `${m}m`;
+  return { text, cls: mins < 180 ? "soon" : "" };
+}
+
+function vsPill(r) {
+  if (r.vs_value == null) return `<span class="pill none">–</span><span class="pill-note">no match</span>`;
+  const pct = Math.round(r.vs_value * 100);
+  const cls = r.vs_value <= 1 ? "under" : r.vs_value <= 1.1 ? "near" : "over";
+  return `<span class="pill ${cls}">${pct}%</span>`;
+}
+
+function esc(s) { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; }
+
+function table(list, showEnds) {
+  if (!list.length) return `<div class="empty">No listings match.</div>`;
+  const head = `<tr>${showEnds ? "<th>Ends</th>" : "<th>Polled</th>"}<th>Card</th><th class="num">Est. value</th><th class="num">Current price</th><th>vs value</th><th>Set</th><th>Year</th><th>Grade</th><th>Seller</th></tr>`;
+  const body = list.map((r) => {
+    const e = showEnds ? endsText(r.ends_at) : { text: r.polled_at || "–", cls: "" };
+    return `<tr>
+      <td class="c-ends mono ends ${e.cls}" data-label="${showEnds ? "Ends" : "Polled"}">${e.text}</td>
+      <td class="c-card">
+        <div class="card-title"><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a></div>
+        ${r.cl_label ? `<div class="cl">Card Ladder: ${esc(r.cl_label)}${r.cl_num_sales ? ` · ${r.cl_num_sales.toLocaleString()} sales` : ""}</div>` : r.note ? `<div class="note">${esc(r.note)}</div>` : ""}
+        <a class="ext" href="${esc(r.url)}" target="_blank" rel="noopener">Open on eBay ↗</a>
+      </td>
+      <td class="num mono" data-label="Est. value">${money(r.est_value)}</td>
+      <td class="num mono" data-label="Current price">${money(r.price)}${r.bids != null && r.format === "Auction" ? `<span class="bids">${r.bids} bid${r.bids === 1 ? "" : "s"}</span>` : r.best_offer ? `<span class="bids">or Best Offer</span>` : ""}</td>
+      <td data-label="vs value">${vsPill(r)}</td>
+      <td data-label="Set">${esc(r.set)}</td>
+      <td class="mono" data-label="Year">${esc(r.year)}</td>
+      <td data-label="Grade"><span class="slab">${esc(r.grade)}</span></td>
+      <td class="seller" data-label="Seller">${esc(r.seller || "–")}${r.seller_feedback ? `<small>${esc(r.seller_feedback)} feedback</small>` : ""}</td>
+    </tr>`;
+  }).join("");
+  return `<div class="table-wrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+}
+
+function render() {
+  const underOnly = $("f-under").checked;
+  const view = rows.filter((r) => !underOnly || (r.vs_value != null && r.vs_value <= 1));
+  const byEnd = (a, b) => (a.ends_at || "9").localeCompare(b.ends_at || "9");
+  const auctions = view.filter((r) => r.format === "Auction").sort(byEnd);
+  const bin = view.filter((r) => r.format === "Buy It Now").sort((a, b) => (a.vs_value ?? 9) - (b.vs_value ?? 9));
+  const other = view.filter((r) => r.format !== "Auction" && r.format !== "Buy It Now");
+  $("auctions").innerHTML = table(auctions, true);
+  $("bin").innerHTML = table(bin, false);
+  $("other-section").hidden = !other.length;
+  $("other").innerHTML = table(other, false);
+
+  const today = new Date().toDateString();
+  $("s-total").textContent = rows.length;
+  $("s-under").textContent = rows.filter((r) => r.vs_value != null && r.vs_value <= 1).length;
+  $("s-today").textContent = rows.filter((r) => r.format === "Auction" && r.ends_at && new Date(r.ends_at).toDateString() === today && new Date(r.ends_at) > Date.now()).length;
+  $("s-none").textContent = rows.filter((r) => r.vs_value == null).length;
+  if (meta) {
+    $("poll").innerHTML = `Last poll <b>${esc(meta.polled_at_label || meta.polled_at)}</b><br>${esc(meta.source || "")}`;
+    $("meta-note").textContent = meta.note || "";
+  }
+}
+
+$("f-under").addEventListener("change", render);
+try { $("f-under").checked = localStorage.getItem("underOnly") === "1"; } catch {}
+$("f-under").addEventListener("change", () => { try { localStorage.setItem("underOnly", $("f-under").checked ? "1" : "0"); } catch {} });
+setInterval(render, 60000);
+
+(async () => {
+  const db = await window.claude?.use?.("db");
+  if (!db) {
+    $("poll").textContent = "Sign in on claude.ai to load listings.";
+    return;
+  }
+  db.collection("listings").onSnapshot((snap) => {
+    rows = snap.docs.map((d) => d.data());
+    if (!rows.length) $("poll").textContent = "No listings yet. Run a poll to fill the board.";
+    render();
+  }, (e) => { $("poll").textContent = "Couldn't load listings (" + (e.code || "error") + "). Reload to try again."; });
+  db.doc("meta/latest").onSnapshot((snap) => { meta = snap.data() || null; render(); });
+})();
+render();
+</script>

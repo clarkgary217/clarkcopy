@@ -44,3 +44,12 @@ Python (uv) project for the card deal finder. Separate from the Next.js app in t
 - Archive-only certs (40-char hash `id`) have no card page: `pop` null, `current_listings` empty, `condition` like `g9`.
 - Responses are cached in `.cache/` for 12h (gitignored); `--refresh` bypasses the cache. Mind the free plan: 200 credits and 100 requests/day; the `x-credits-remaining` response header shows the balance.
 - The Card Ladder API has 20 endpoints (see the Parse marketplace listing `cardladder-com-api`), priced 1–10 credits each.
+
+## LeBron Deal Board (dashboard)
+
+- Dashboard: https://claude.ai/artifact/3EBNjebi2NceAHoWE9KSTw (private artifact; source `dealfinder/dashboard/index.html`). It renders from the artifact's database: collection `listings` (one doc per eBay item id) and doc `meta/latest`. Update data with the ArtifactData tool (batch writes), not by republishing the page.
+- Scope: PSA-graded LeBron James, eBay listings over $300. Auctions sorted ending soonest (poll once a day); Buy It Now unfiltered.
+- Parse eBay costs: `search_listings` **10 credits**, `get_item_details` **2 credits**. Card Ladder `search_cards` 1, `search_by_certs_bulk` 1 per call.
+- Search results have no listing type, end time or bids. `get_item_details` `price` packs them in, e.g. `US $1,475.0027 bidsEnds in3h 21m`; a price with "or Best Offer" is Buy It Now (auctions can't take offers). Item specifics include Set, Card Number and Parallel/Variety but **no PSA cert**, so the value comes from Card Ladder `search_cards` with a `condition` filter (e.g. "PSA 9") instead of a cert lookup.
+- First poll (2026-10-13): `data/ebay_search_raw.json`, `data/item_*.json`, `data/cl_*.json` → `data/build_rows.py` → `data/lebron_poll_2026-10-13.json`, seeded from `data/seed/`. Cost about 34 credits.
+- Plan: switch the eBay side to the official eBay Browse API once approved (free; gives buying format, end time, bids, price filter, ending-soonest sort), keeping Parse only for Card Ladder values.
