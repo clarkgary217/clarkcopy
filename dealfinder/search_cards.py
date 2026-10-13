@@ -29,6 +29,16 @@ class CardLadder(BaseAPI):
         result["sales"].sort(key=lambda s: datetime.strptime(s["date"], "%m/%d/%Y"), reverse=True)
         return result
 
+    def search_by_certs_bulk(self, certs: list[dict], *, max_seconds: int = 38):
+        """Exact card+grade lookup for up to 200 certs in one call (1 credit total).
+
+        certs: [{"cert_number": "...", "grading_company": "PSA"}]. Each result has the card,
+        cl_value, up to 10 recent_sales (newest first) and current_listings. Certs that ran out
+        of time come back in unprocessed_certs and can be resubmitted.
+        """
+        return self._request("POST", "search_by_certs_bulk", {"certs": certs, "workers": 5, "max_seconds": max_seconds},
+                             timeout=max_seconds + 60)
+
     def get_card_value(self, card_id: str):
         # Often times out; search_cards already returns current_value and market_value.
         return self._request("GET", "get_card_value", {"card_id": card_id})

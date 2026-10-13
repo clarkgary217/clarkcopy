@@ -36,3 +36,11 @@ Python (uv) project for the card deal finder. Separate from the Next.js app in t
 - `ebay_search.py` calls Parse's eBay API (`search_listings`, scraper `caa8e1ad-…`, pinned with `API-Snapshot-Version: 19`) over plain HTTP via httpx. Use it until the official eBay API account is approved, then replace it.
 - Params: `query`, plus `sold` / `graded` / `complete` as "True"/"False" strings. Always keep `sold=False` (see Data sources). The response is `{"status", "data": {"listings": [...]}}`; each listing has title, price, url, image, condition, shipping, item_id, date_sold.
 - Data quirks seen: results include loose matches (an "iphone 15" search returned iPhone 13/14), `shipping` sometimes repeats the price range, and `condition` sometimes holds shipping/returns text. Filter and parse defensively.
+
+## Deal finder (`deal_finder.py`)
+
+- All cards are PSA-graded, so cards are identified by **cert number**, not text search. `WATCHLIST` holds one reference cert per card+grade (plus optional `title_exclude` for that card's parallels).
+- Flow: `CardLadder.search_by_certs_bulk` (1 credit for up to 200 certs) gives the exact card, `cl_value` and up to 10 `recent_sales` → baseline = median of sales in the last 180 days → listings from the cert's `current_listings` if Card Ladder has a card page for that grade, else an eBay search (1 credit) filtered to titles with the same player, year, set, number and exact grade → flag listings ≥20% under the baseline.
+- Archive-only certs (40-char hash `id`) have no card page: `pop` null, `current_listings` empty, `condition` like `g9`.
+- Responses are cached in `.cache/` for 12h (gitignored); `--refresh` bypasses the cache. Mind the free plan: 200 credits and 100 requests/day; the `x-credits-remaining` response header shows the balance.
+- The Card Ladder API has 20 endpoints (see the Parse marketplace listing `cardladder-com-api`), priced 1–10 credits each.
