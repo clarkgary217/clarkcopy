@@ -16,3 +16,9 @@ Python (uv) project for the card deal finder. Separate from the Next.js app in t
 - Run scripts with `uv run python <file>.py`.
 - In the cloud container, set `SSL_CERT_FILE=/root/.ccr/ca-bundle.crt` or CLI calls can time out.
 - Network: needs `api.parse.bot` (and `docs.parse.bot` for docs) reachable.
+
+## Parse MCP server
+
+- `.mcp.json` at the repo root registers Parse's hosted MCP server (`https://api.parse.bot/mcp`), authenticated with `X-API-Key: ${PARSE_API_KEY}`. The key is expanded from the environment, never written to the file.
+- Tools: `marketplace_search`, `marketplace_subscribe`, `create_api`, `list_apis`, `get_api`, `revise_api`, `call_endpoint`, `fork_updates`, and others. Use `revise_api` to get the cardladder spec modeled so `parse sync` can generate a typed client.
+- For cloud sessions, set `PARSE_API_KEY` in the environment's variables. On desktop, export it in your shell before starting Claude Code.
