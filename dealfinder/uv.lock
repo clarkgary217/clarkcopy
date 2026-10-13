@@ -38,12 +38,14 @@ name = "dealfinder"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "httpx" },
     { name = "parse-apis" },
     { name = "parse-sdk" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "parse-apis", editable = "parse_apis" },
     { name = "parse-sdk", specifier = ">=0.2.0" },
 ]
