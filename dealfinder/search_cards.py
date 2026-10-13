@@ -7,6 +7,7 @@ the endpoint through the SDK's BaseAPI. The key comes from PARSE_API_KEY.
 
 import json
 import sys
+from datetime import datetime
 
 from parse_sdk import BaseAPI, ParseError
 
@@ -18,6 +19,19 @@ class CardLadder(BaseAPI):
 
     def search_cards(self, query: str, *, limit: int = 5, page: int = 0, **filters):
         return self._request("GET", "search_cards", {"query": query, "limit": limit, "page": page, **filters})
+
+    def get_card_sales(self, card_id: str):
+        """Sold history for one card (Card Ladder is the only source of sold prices; eBay sold search doesn't work).
+
+        Card Ladder returns sales ordered by month/day with the year ignored, so re-sort newest first.
+        """
+        result = self._request("GET", "get_card_sales", {"card_id": card_id})
+        result["sales"].sort(key=lambda s: datetime.strptime(s["date"], "%m/%d/%Y"), reverse=True)
+        return result
+
+    def get_card_value(self, card_id: str):
+        # Often times out; search_cards already returns current_value and market_value.
+        return self._request("GET", "get_card_value", {"card_id": card_id})
 
 
 def main():

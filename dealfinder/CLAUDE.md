@@ -23,8 +23,16 @@ Python (uv) project for the card deal finder. Separate from the Next.js app in t
 - Tools: `marketplace_search`, `marketplace_subscribe`, `create_api`, `list_apis`, `get_api`, `revise_api`, `call_endpoint`, `fork_updates`, and others. Use `revise_api` to get the cardladder spec modeled so `parse sync` can generate a typed client.
 - For cloud sessions, set `PARSE_API_KEY` in the environment's variables. On desktop, export it in your shell before starting Claude Code.
 
+## Data sources
+
+- **Active listings (potential deals): eBay** via `ebay_search.py`.
+- **Sold prices: Card Ladder only** via `CardLadder.get_card_sales(card_id)` in `search_cards.py`. Never use eBay for sold data: Parse's eBay sold search returns nothing or hangs.
+- `get_card_sales` returns `{card_id, label, cert_number, grading_company, total_sales, sales: [{date "MM/DD/YYYY", price, count}]}`. Card Ladder orders sales by month/day ignoring the year; the wrapper re-sorts them newest first.
+- `get_card_value` frequently times out. Prefer `current_value` / `market_value` from `search_cards`.
+- Parse calls are intermittently slow. A request running ~2 minutes may come back as a misleading 401 "Invalid API key" even when the key is valid. Treat that as a timeout and retry later.
+
 ## eBay listings (stopgap)
 
 - `ebay_search.py` calls Parse's eBay API (`search_listings`, scraper `caa8e1ad-…`, pinned with `API-Snapshot-Version: 19`) over plain HTTP via httpx. Use it until the official eBay API account is approved, then replace it.
-- Params: `query`, plus `sold` / `graded` / `complete` as "True"/"False" strings. The response is `{"status", "data": {"listings": [...]}}`; each listing has title, price, url, image, condition, shipping, item_id, date_sold.
+- Params: `query`, plus `sold` / `graded` / `complete` as "True"/"False" strings. Always keep `sold=False` (see Data sources). The response is `{"status", "data": {"listings": [...]}}`; each listing has title, price, url, image, condition, shipping, item_id, date_sold.
 - Data quirks seen: results include loose matches (an "iphone 15" search returned iPhone 13/14), `shipping` sometimes repeats the price range, and `condition` sometimes holds shipping/returns text. Filter and parse defensively.
